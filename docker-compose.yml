@@ -1,0 +1,12 @@
+version: '3'
+services:
+  resty:
+    build: .
+    ports:
+      - 8000:80
+    environment:
+      - FLY_REDIS_CACHE_URL=redis://:password@redis_db:6379
+  redis_db:
+    image: "redis:alpine"
+    ports:
+      - 6379:6379
