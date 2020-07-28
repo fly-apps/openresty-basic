@@ -1,3 +1,4 @@
+-- Credit: https://stackoverflow.com/a/29497100/977192 --
 local _M = {}
 function _M.split(source, delimiters)
     local elements = {}
