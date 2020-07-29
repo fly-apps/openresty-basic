@@ -1,16 +1,18 @@
 # Running OpenResty on Fly
-If you've been developing web applications for long, you've probably heard of [Nginx](https://nginx.org/en/). It's an extremely popular open-source HTTP server, but it has some limitations. By default, Nginx doesn't provide a way to program logical operators or write custom features. Developers can circumvent this by using modules like [Nginx JavaScript](https://www.nginx.com/blog/introduction-nginscript/) or [Lua](https://github.com/openresty/lua-nginx-module), but that takes extra work to install and configure.
+If you've been developing web applications for long, you've probably heard of [Nginx](https://nginx.org/en/). It's a widely used open-source HTTP server, but it has some limitations. By default, Nginx doesn't provide a way to program logical operators or write custom logic. Developers can circumvent this by using modules like [Nginx JavaScript](https://www.nginx.com/blog/introduction-nginscript/) or [Lua](https://github.com/openresty/lua-nginx-module), but that takes extra work to install and configure.
 
-[OpenResty](https://openresty.org/en/) allows you to build full-fledged web applications on Nginx by bundling it with a Lua compiler and several other common modules. This makes OpenResty more broadly useful than vanilla Nginx, but depending on your use case, it might be overkill.
+[OpenResty](https://openresty.org/en/) allows you to build full-fledged web applications by bundling Nginx with a Lua compiler and several common modules. This makes OpenResty more broadly useful than vanilla Nginx, but depending on your use case, it could be overkill.
 
-For example, if you want to [run a simple reverse proxy](https://docs.nginx.com/nginx/admin-guide/web-server/reverse-proxy/) on your server, Nginx can handle it for you. But, if you want to add rate limiting, authentication, advanced caching, or a connection to a database, you'll need a solution like OpenResty. With the increase in distributed computing and microservices, OpenResty has become a great option for complex firewalls, API gateways, and even full-fledged web applications.
+For example, if you want to [run a simple reverse proxy](https://docs.nginx.com/nginx/admin-guide/web-server/reverse-proxy/) on your server, Nginx can handle it. If you need to add rate limiting, authentication, advanced caching, or a connection to a database, you'll need a solution like OpenResty. With the increase in distributed computing and microservices, OpenResty has become an excellent option for complex firewalls, API gateways, and even full-fledged web applications.
 
-Typically, OpenResty is deployed to a central server. Web requests go through the OpenResty server before being routed to the relevant backing services, but this model isn't great for performance or redundancy. While you can set up and maintain several servers to run your OpenResty instance, you have to figure out how to keep updates and data in sync across them.
+Typically, OpenResty is deployed to a central server. Web requests go through OpenResty before being routed to the relevant backing services, but this model isn't great for performance or redundancy. While you can set up several servers and run OpenResty on each, you have to figure out how to maintain and sync data across them.
 
-A better solution is to use a distributed hosting platform like [Fly](https://fly.io) to run your OpenResty installation at the edge. Using Fly will decrease latency while ensuring that the failure of a single node doesn't make your website unavailable.
+A better solution is to use a distributed hosting platform like [Fly](https://fly.io) to run OpenResty at the edge. Using Fly will decrease latency while ensuring that a single node's failure doesn't make your website unavailable.
+
+![Running OpenResty on Fly.io](fly-2020-07-29-a.jpg)
 
 ## How to Deploy OpenResty to Fly
-In this tutorial, you'll see how to create an OpenResty application and deploy it to Fly. You'll create a reverse proxy endpoint that uses the [JSON Placeholder API](https://jsonplaceholder.typicode.com/) as a backend service. You'll use a custom Lua script to add rate limiting, and the Fly Redis connection to add authentication to your endpoint. All the steps you need are in this tutorial, but if you'd like to download the final application, it's [available on Github](https://github.com/karllhughes/fly-openresty) as well.
+In this tutorial, you'll see how to create an OpenResty application and deploy it to Fly. You'll create a reverse proxy endpoint that uses the [JSON Placeholder API](https://jsonplaceholder.typicode.com/) as a backend service. You'll use a custom Lua script to add rate limiting, and the Fly Redis connection to add API key authentication to your endpoint. All the steps you need are in this tutorial, but if you'd like to download the final application, it's [available on Github](https://github.com/karllhughes/fly-openresty) as well.
 
 ### Prerequisites
 - [Flyctl command line tool](https://fly.io/docs/flyctl/installing/).
@@ -59,7 +61,7 @@ Wrote config file fly.toml
 
 Fly will create a `fly.toml` file and `Dockerfile` in the root of your project.
 
-Open the `fly.toml` file and set the `internal_port = 80` within the `[[services]]` portion:
+Open the `fly.toml` file and set the `internal_port = 80` within the `[[services]]` portion of the file:
 
 ```toml
 ...
@@ -69,14 +71,14 @@ Open the `fly.toml` file and set the `internal_port = 80` within the `[[services
 ...
 ```
 
-This will route traffic through Fly to your container's port 80 where OpenResty will run.
+This will route traffic through Fly to your container's port 80, where OpenResty will run.
 
 ### Configuring the Dockerfile
 Fly will build and run your Docker image as a container on the edge, but you need to update your Dockerfile first.
 
-OpenResty provides [a number of Docker images](https://github.com/openresty/docker-openresty) you can use for your application. I selected Centos and because of [an apparent bug in their Docker image](https://github.com/openresty/docker-openresty/issues/124), specified the `1.15.8.1-4-centos` tag.
+OpenResty provides [several Docker images](https://github.com/openresty/docker-openresty) you can use for your application. I opted for Centos, but because of [an apparent bug in their Docker image](https://github.com/openresty/docker-openresty/issues/124), specified the `1.15.8.1-4-centos` tag.
 
-After selecting the base image, add a `RUN` command to append `env FLY_REDIS_CACHE_URL` to the top of your `/usr/local/openresty/nginx/conf/nginx.conf` file. This ensures that Nginx has access to the `FLY_REDIS_CACHE_URL` environment variable.
+After selecting the base image, add a `RUN` command to append `env FLY_REDIS_CACHE_URL` to the top of your `/usr/local/openresty/nginx/conf/nginx.conf` file. This line ensures that Nginx has access to the `FLY_REDIS_CACHE_URL` environment variable.
 
 Finally, remove the default Nginx site configuration files and add `default.conf` file to the `/etc/nginx/conf.d/` directory. When done, your Dockerfile should look something like this:
 
@@ -87,12 +89,12 @@ FROM openresty/openresty:1.15.8.1-4-centos
 # Add the REDIS connection URL as an env variable in NGINX
 RUN echo -e "env FLY_REDIS_CACHE_URL;\n$(cat /usr/local/openresty/nginx/conf/nginx.conf)" > /usr/local/openresty/nginx/conf/nginx.conf
 
-# Add the configuration files
+# Add the configuration file
 RUN rm /etc/nginx/conf.d/*
 COPY default.conf /etc/nginx/conf.d/default.conf
 ```
 
-Now that your Dockerfile is ready, you just need to create the `default.conf` file before you can deploy your application to Fly.
+Now that your Dockerfile is ready, you need to create the `default.conf` file before you can deploy your application to Fly.
 
 ### Setting up the Nginx Configuration
 Before you add rate limiting and Redis to your Nginx configuration, you can start with a simple reverse proxy configuration.
@@ -108,7 +110,7 @@ server {
 }
 ```
 
-This minimal Nginx config reverse proxies any request to `/api/` to the JSON Placeholder API. To test it, you can deploy this to Fly using the command line too:
+This minimal Nginx configuration reverse proxies any request to `/api/` to the JSON Placeholder API. To test it, you can deploy this to Fly using the command line:
 
 ```bash
 flyctl deploy
@@ -140,10 +142,10 @@ You can detach the terminal anytime without stopping the deployment
 --> v1 deployed successfully
 ```
 
-Your reverse proxy is now live on Fly! You can visit it and see the JSON Placeholder data at `https://<your-app-name>.fly.dev/api/`, but you're not done yet. In the next two sections, you'll see how to add rate limiting and authentication using a Redis store and custom Lua script.
+Your reverse proxy is now live on Fly! You can visit it and see the JSON Placeholder data at `https://<your-app-name>.fly.dev/api/`, but you're not done yet. In the next two sections, you'll see how to add rate limiting and authentication using a Redis store and custom Lua scripts.
 
 ### Adding Rate Limiting
-Nginx reads and applies all the configuration files in the `/etc/nginx/conf.d/` directory automatically. Because OpenResty adds the Lua compiler to Nginx, you can write [Lua code](http://www.lua.org/) inside your `default.conf` file. In order to add rate limiting, you can use the [lua-resty-limit-traffic](https://github.com/openresty/lua-resty-limit-traffic) library that comes with OpenResty and customize its behavior in your Nginx configuration file.
+Nginx reads and applies all the configuration files in the `/etc/nginx/conf.d/` directory. Because OpenResty adds the Lua compiler to Nginx, you can write [Lua code](http://www.lua.org/) inside your `default.conf` file. To add rate limiting, you can use the [lua-resty-limit-traffic](https://github.com/openresty/lua-resty-limit-traffic) library that comes with OpenResty and customize its behavior in your Nginx configuration file.
 
 Open your `default.conf` file and replace it with the following:
 
@@ -180,14 +182,16 @@ server {
 }
 ```
 
-This configuration passes your request through using the `proxy_pass` directive at the end like the previous version did, but before that, it checks to see if the visitor has reached their request limit using the `Fly-Client-IP` header [attached to the request by Fly](https://fly.io/docs/services/#http). If the IP address has called the endpoint in the past 2 seconds, it returns a 503 response and logs the error.
+This configuration passes your request through using the `proxy_pass` directive at the end, as the previous version did. Before it does, it checks if the visitor has reached their request limit using the `Fly-Client-IP` header [attached to the request by Fly](https://fly.io/docs/services/#http). If the IP address has called the endpoint in the past 2 seconds, it returns a 503 response and logs the error.
 
-You can re-deploy this configuration file to Fly and call the endpoint twice in quick succession to test it. You've now got a working rate limiter running, but you're still not finished. In the last section, you'll see how to connect your OpenResty application to Redis to store API keys that can be used for authentication. 
+You can re-deploy this configuration file to Fly (again using `flyctl deploy`) and call the endpoint twice in quick succession to test it.
+
+You've now got a working rate limiter, but you're still not finished. In the last section, you'll see how to connect your OpenResty application to Redis to store API keys that can be used for authentication. 
 
 ### Checking API Keys Against a Redis Store
-Fly offers a [region-local Redis instance](https://fly.io/docs/redis/) to all deployments which can be used to persist data for longer periods. While this volatile data store is not meant for permanent use, you can use it to cache data so that it's accessible on the edge.
+Fly offers a [region-local Redis instance](https://fly.io/docs/redis/) to all deployments, which can be used to persist data for longer periods. While this volatile datastore is not meant for permanent use, you can use it to cache data so that it's accessible on the edge.
 
-In this last step, you'll connect to the Fly Redis instance using the OpenResty [Redis driver](https://github.com/openresty/lua-resty-redis). You'll authenticate requests using a `key` passed in by the user through a querystring argument and return a 401 response code if authentication fails. In a real application, you would probably push data to the Fly Redis instance using [their global data store](https://fly.io/docs/redis/#managing-redis-data-globally), but because this is a demonstration app, you'll hard code a few sample API keys.
+In this last step, you'll connect to the Fly Redis instance using the OpenResty [Redis driver](https://github.com/openresty/lua-resty-redis). You'll authenticate requests using a `key` passed in by the user through a query string argument and return a 401 response code if authentication fails. In a real application, you would probably push data to the Fly Redis instance using [their global data store](https://fly.io/docs/redis/#managing-redis-data-globally), but because this is a demonstration app, you'll hard code a few sample API keys.
 
 First, write a Lua script to parse the connection string. Fly's `FLY_REDIS_CACHE_URL` must be split at the `:` and `@` characters, so you can write a function that takes any number of characters as possible delimiters ([credit to Walt Howard on Stack Overflow](https://stackoverflow.com/a/29497100/977192) for this one). Create a new file called `split.lua` and add the following:
 
@@ -274,9 +278,9 @@ server {
 }
 ```
 
-Deploy this updated configuration file using `flyctl deploy` and visit `https://<your-app-name>.fly.dev/api/` again. This time, you should get a 401 response from OpenResty. Now add one of the API keys you hard-coded as a `key` in the querystring: `https://<your-app-name>.fly.dev/api/?key=AstIqxOHpyAToCwh8qeL`. This time, you'll see the JSON placeholder data again.
+Deploy this updated configuration file using `flyctl deploy` and visit `https://<your-app-name>.fly.dev/api/` again. This time, you will get a 401 response from OpenResty. Add one of the API keys you hard-coded as a `key` in the query string: `https://<your-app-name>.fly.dev/api/?key=AstIqxOHpyAToCwh8qeL` and you'll see the JSON placeholder data again.
 
 ## Conclusion
-In this post, you've seen how to create an OpenResty application to extend the functionality provided by Nginx. You've added rate limiting to ensure that users don't abuse your API and simple authentication using data cached in Redis. Finally, by deploying the application on Fly, you can take advantage of their globally distributed edge hosting environment to make your app faster and more reliable than it would be on traditional hosting.
+In this post, you've seen how to create an OpenResty application to extend Nginx's functionality. You've added rate-limiting to ensure that users don't abuse your API and simple authentication using data cached in Redis. Finally, by deploying the application on Fly, you can take advantage of their globally distributed edge hosting environment to make your app faster and more reliable than it would be on traditional hosting.
 
 If you have any questions about using OpenResty with [Fly.io](https://fly.io/), be sure to reach out so we can help you get started.
