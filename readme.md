@@ -1,4 +1,5 @@
 # Running OpenResty on Fly
+<!---- cut here --->
 If you've been developing web applications for long, you've probably heard of [Nginx](https://nginx.org/en/). It's a widely used open-source HTTP server, but it has some limitations. By default, Nginx doesn't provide a way to program logical operators or write custom logic. Developers can circumvent this by using modules like [Nginx JavaScript](https://www.nginx.com/blog/introduction-nginscript/) or [Lua](https://github.com/openresty/lua-nginx-module), but that takes extra work to install and configure.
 
 [OpenResty](https://openresty.org/en/) allows you to build full-fledged web applications by bundling Nginx with a Lua compiler and several common modules. This makes OpenResty more broadly useful than vanilla Nginx, but depending on your use case, it could be overkill.
