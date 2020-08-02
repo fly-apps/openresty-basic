@@ -17,64 +17,12 @@ In this tutorial, you'll see how to create an OpenResty application and deploy i
 ### Prerequisites
 - [Flyctl command line tool](https://fly.io/docs/flyctl/installing/).
 
-### Creating a New Fly Application
-First, you'll need to use `flyctl` to create a new application. If you haven't already, install the appropriate version of `flyctl` for your operating system using the [instructions here](https://fly.io/docs/hands-on/installing/).
-
-Next, [sign up](https://fly.io/docs/hands-on/sign-up/) or [sign in](https://fly.io/docs/hands-on/sign-in/) to your Fly account via the command line:
-
-```bash
-# Sign up
-flyctl auth signup
-
-# Or sign in
-flyctl auth login
-```
-
-You will be directed to a web page that will allow you to log in using your Github account or email and password.
-
-Create a new directory called `fly-openresty` and create your new app inside of it:
-
-```bash
-mkdir fly-openresty && cd fly-openresty
-flyctl apps create
-```
-
-Use the auto-generated app name, select your organization, and select `Dockerfile` as your builder. You should see output similar to this in your console:
-
-```bash
-? App Name (leave blank to use an auto-generated name) 
-
-? Select organization: YOUR ORGANIZATION
-
-? Select builder: Dockerfile
-    (Create an example Dockerfile)
-
-New app created
-  Name     = <your-app-name>  
-  Owner    = <your-name>
-  Version  = 0               
-  Status   =                 
-  Hostname = <empty>         
-
-Wrote config file fly.toml
-```
-
-Fly will create a `fly.toml` file and `Dockerfile` in the root of your project.
-
-Open the `fly.toml` file and set the `internal_port = 80` within the `[[services]]` portion of the file:
-
-```toml
-...
-[[services]]
-  internal_port = 80
-  protocol = "tcp"
-...
-```
-
-This will route traffic through Fly to your container's port 80, where OpenResty will run.
-
 ### Configuring the Dockerfile
-Fly will build and run your Docker image as a container on the edge, but you need to update your Dockerfile first.
+Fly will build and run your Docker image in a [Firecracker VM](https://fly.io/docs/architecture/#microvms) on the edge, but you need to create a Dockerfile first:
+
+```bash
+touch Dockerfile
+```
 
 OpenResty provides [several Docker images](https://github.com/openresty/docker-openresty) you can use for your application. I opted for Centos, but because of [an apparent bug in their Docker image](https://github.com/openresty/docker-openresty/issues/124), specified the `1.15.8.1-4-centos` tag.
 
@@ -97,7 +45,7 @@ COPY default.conf /etc/nginx/conf.d/default.conf
 Now that your Dockerfile is ready, you need to create the `default.conf` file before you can deploy your application to Fly.
 
 ### Setting up the Nginx Configuration
-Before you add rate limiting and Redis to your Nginx configuration, you can start with a simple reverse proxy configuration.
+Before you add rate limiting and Redis to your Nginx configuration, start with a simple reverse proxy configuration.
 
 To set up your reverse proxy, create a `default.conf` file in your root directory and add the following:
 
@@ -110,7 +58,53 @@ server {
 }
 ```
 
-This minimal Nginx configuration reverse proxies any request to `/api/` to the JSON Placeholder API. To test it, you can deploy this to Fly using the command line:
+This minimal Nginx configuration listens to requests on port 80 and reverse proxies any request to `/api/` to the JSON Placeholder API. Now that your Dockerfile and Nginx configuration are ready, you can create and deploy your reverse proxy to Fly.
+
+### Creating a New Fly Application
+You'll need to use `flyctl` to create a new application. If you haven't already, install the appropriate version of `flyctl` for your operating system using the [instructions here](https://fly.io/docs/hands-on/installing/).
+
+Next, [sign up](https://fly.io/docs/hands-on/sign-up/) or [sign in](https://fly.io/docs/hands-on/sign-in/) to your Fly account via the command line:
+
+```bash
+# Sign up
+flyctl auth signup
+
+# Or sign in
+flyctl auth login
+```
+
+You will be directed to a web page that will allow you to log in using your Github account or email and password.
+
+Create a new directory called `fly-openresty` and create your new app inside of it:
+
+```bash
+mkdir fly-openresty && cd fly-openresty
+flyctl init --port 80
+```
+
+Use the auto-generated app name, select your organization, and select `Dockerfile` as your builder. You should see output similar to this in your console:
+
+```bash
+? App Name (leave blank to use an auto-generated name) 
+
+? Select organization: YOUR ORGANIZATION
+
+? Select builder: Dockerfile
+    (Create an example Dockerfile)
+
+New app created
+  Name     = <your-app-name>  
+  Owner    = <your-name>
+  Version  = 0               
+  Status   =                 
+  Hostname = <empty>         
+
+Wrote config file fly.toml
+```
+
+Fly will create a `fly.toml` file in the root of your project and set the `internal_port` to 80 so that requests are properly routed to OpenResty.
+
+Now you're ready to deploy your application using the command line:
 
 ```bash
 flyctl deploy
@@ -142,7 +136,13 @@ You can detach the terminal anytime without stopping the deployment
 --> v1 deployed successfully
 ```
 
-Your reverse proxy is now live on Fly! You can visit it and see the JSON Placeholder data at `https://<your-app-name>.fly.dev/api/`, but you're not done yet. In the next two sections, you'll see how to add rate limiting and authentication using a Redis store and custom Lua scripts.
+Your reverse proxy is now live on Fly! You can visit it and see the JSON Placeholder data using the Fly command line tool:
+ 
+ ```bash
+flyctl open /api 
+```
+
+In the next two sections, you'll see how to add rate limiting and authentication using a Redis store and custom Lua scripts.
 
 ### Adding Rate Limiting
 Nginx reads and applies all the configuration files in the `/etc/nginx/conf.d/` directory. Because OpenResty adds the Lua compiler to Nginx, you can write [Lua code](http://www.lua.org/) inside your `default.conf` file. To add rate limiting, you can use the [lua-resty-limit-traffic](https://github.com/openresty/lua-resty-limit-traffic) library that comes with OpenResty and customize its behavior in your Nginx configuration file.

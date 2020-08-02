@@ -7,4 +7,6 @@ RUN echo -e "env FLY_REDIS_CACHE_URL;\n$(cat /usr/local/openresty/nginx/conf/ngi
 # Add the configuration and lua files
 RUN rm /etc/nginx/conf.d/*
 COPY default.conf /etc/nginx/conf.d/default.conf
+# COPY ratelimit-default.conf /etc/nginx/conf.d/default.conf
+# COPY redisapikeys-default.conf /etc/nginx/conf.d/default.conf
 COPY split.lua /etc/nginx/conf.d/split.lua

@@ -1,6 +1,6 @@
-# fly.toml file generated for misty-tree-5730 on 2020-07-28T14:06:17-05:00
+# fly.toml file generated for frosty-firefly-5989 on 2020-08-01T19:54:20-05:00
 
-app = "misty-tree-5730"
+app = "frosty-firefly-5989"
 
 
 [[services]]
