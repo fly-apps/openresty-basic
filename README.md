@@ -1,4 +1,5 @@
 # Running OpenResty on Fly
+<!---- cut here --->
 If you've been developing web applications for long, you've probably heard of [Nginx](https://nginx.org/en/). It's a widely used open-source HTTP server, but it has some limitations. By default, Nginx doesn't provide a way to program logical operators or write custom logic. Developers can circumvent this by using modules like [Nginx JavaScript](https://www.nginx.com/blog/introduction-nginscript/) or [Lua](https://github.com/openresty/lua-nginx-module), but that takes extra work to install and configure.
 
 [OpenResty](https://openresty.org/en/) allows you to build full-fledged web applications by bundling Nginx with a Lua compiler and several common modules. This makes OpenResty more broadly useful than vanilla Nginx, but depending on your use case, it could be overkill.
@@ -9,7 +10,7 @@ Typically, OpenResty is deployed to a central server. Web requests go through Op
 
 A better solution is to use a distributed hosting platform like [Fly](https://fly.io) to run OpenResty at the edge. Using Fly will decrease latency while ensuring that a single node's failure doesn't make your website unavailable.
 
-![Running OpenResty on Fly.io](fly-2020-07-29-a.jpg)
+![Running OpenResty on Fly.io](https://github.com/fly-examples/openresty-basic/raw/main/fly-2020-07-29-a.jpg)
 
 ## How to Deploy OpenResty to Fly
 In this tutorial, you'll see how to create an OpenResty application and deploy it to Fly. You'll create a reverse proxy endpoint that uses the [JSON Placeholder API](https://jsonplaceholder.typicode.com/) as a backend service. You'll use a custom Lua script to add rate limiting, and the Fly Redis connection to add API key authentication to your endpoint. All the steps you need are in this tutorial, but if you'd like to download the final application, it's [available on Github](https://github.com/karllhughes/fly-openresty) as well.
