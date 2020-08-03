@@ -18,12 +18,16 @@ In this tutorial, you'll see how to create an OpenResty application and deploy i
 ### Prerequisites
 - [Flyctl command line tool](https://fly.io/docs/flyctl/installing/).
 
-### Configuring the Dockerfile
-Fly will build and run your Docker image in a [Firecracker VM](https://fly.io/docs/architecture/#microvms) on the edge, but you need to create a Dockerfile first:
+### Preparing To Fly
+
+To start, create a new directory called `fly-openresty` and we'll create your new app inside of it:
 
 ```bash
-touch Dockerfile
+mkdir fly-openresty && cd fly-openresty
 ```
+
+### Configuring the Dockerfile
+Fly will build and run your Docker image in a [Firecracker VM](https://fly.io/docs/architecture/#microvms) on the edge, but you need to select and configure a Dockerfile first.
 
 OpenResty provides [several Docker images](https://github.com/openresty/docker-openresty) you can use for your application. I opted for Centos, but because of [an apparent bug in their Docker image](https://github.com/openresty/docker-openresty/issues/124), specified the `1.15.8.1-4-centos` tag.
 
@@ -74,16 +78,15 @@ flyctl auth signup
 flyctl auth login
 ```
 
-You will be directed to a web page that will allow you to log in using your Github account or email and password.
-
-Create a new directory called `fly-openresty` and create your new app inside of it:
+You can now create your new app in the fly-openresty directory using the fly `init` command:
 
 ```bash
-mkdir fly-openresty && cd fly-openresty
 flyctl init --port 80
 ```
 
-Use the auto-generated app name, select your organization, and select `Dockerfile` as your builder. You should see output similar to this in your console:
+The `--port 80` says our application communicates on port 80.
+
+You'll be prompted for an app name. Use the auto-generated app name, select your organization, and select `Dockerfile` as your builder. You should see output similar to this in your console:
 
 ```bash
 ? App Name (leave blank to use an auto-generated name) 
@@ -103,7 +106,7 @@ New app created
 Wrote config file fly.toml
 ```
 
-Fly will create a `fly.toml` file in the root of your project and set the `internal_port` to 80 so that requests are properly routed to OpenResty.
+Fly will create a `fly.toml` file in the your project's directoy and set the `internal_port` to 80 so that requests are properly routed to OpenResty.
 
 Now you're ready to deploy your application using the command line:
 
